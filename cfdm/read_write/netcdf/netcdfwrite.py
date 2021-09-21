@@ -2197,9 +2197,13 @@ class NetCDFWrite(IOWrite):
 
                 # Create a new auxiliary coordinate variable, if it has data
                 if self.implementation.get_data(coord, None) is not None:
+                    # DEBUG -->
+                    print("x1")
                     self._write_netcdf_variable(
-                        ncvar, ncdimensions, coord, extra=extra
+                           ncvar, ncdimensions, coord, extra=extra
                     )
+                    print("x2")
+                    # DEBUG <--
 
         #                g['key_to_ncvar'][key] = ncvar
         #                g['key_to_ncdims'][key] = ncdimensions
@@ -2612,6 +2616,11 @@ class NetCDFWrite(IOWrite):
                 `None`
 
         """
+        print(
+            "++0",
+            #ncvar, ncdimensions, cfvar, omit, extra, fill,
+            #data_variable, domain_variable
+        )
         # To avoid mutable default argument (an anti-pattern) of extra={}
         if extra is None:
             extra = {}
@@ -2621,20 +2630,36 @@ class NetCDFWrite(IOWrite):
         # ------------------------------------------------------------
         # Set the netCDF4.createVariable datatype
         # ------------------------------------------------------------
+        print("++1")
         if domain_variable:
             data = None
             datatype = "S1"
             original_ncdimensions = ()
             ncdimensions = ()
         else:
+            print("++2")
             datatype = self._datatype(cfvar)
+
+            ### DOESN'T LIKE USE OF THE FOLLOWING!!!
             data = self.implementation.get_data(cfvar, None)
+            #### TO PROVE IT, SEE BELOW.
 
             original_ncdimensions = ncdimensions
 
-            data, ncdimensions = self._transform_strings(
-                cfvar, data, ncdimensions
-            )
+            print("++4.0")
+            if "greek_letters" in repr(cfvar):  # DEBUG
+                import pdb
+                import traceback
+                traceback.print_stack()  # see stack trace from call
+                pdb.set_trace()  # start PDB
+            print("++4.1")
+            try:
+                data, ncdimensions = self._transform_strings(
+                    cfvar, data, ncdimensions
+                )
+            except:
+                print("doesn't like this")
+            print("++4.2")
 
         # Update the 'seen' dictionary
         g["seen"][id(cfvar)] = {
@@ -2650,6 +2675,7 @@ class NetCDFWrite(IOWrite):
 
         logger.info(f"    Writing {cfvar!r}")  # pragma: no cover
 
+        print("++5")
         # ------------------------------------------------------------
         # Find the fill value - the value that the variable's data get
         # filled before any data is written. if the fill value is
@@ -2842,6 +2868,7 @@ class NetCDFWrite(IOWrite):
             `Data`, `tuple`
 
         """
+        print("TRANSFORMING STRINGS FOR", data, ncdimensions)  #  construct,
         datatype = self._datatype(construct)
 
         if data is not None and datatype == "S1":
@@ -3642,13 +3669,16 @@ class NetCDFWrite(IOWrite):
         # might be completely specified elsewhere by a transformation.
         # ------------------------------------------------------------
 
+        print("DEBUG 1 4-5")
         # Initialize the list of 'coordinates' attribute variable
         # values (each of the form 'name')
         for key, aux_coord in sorted(
             self.implementation.get_auxiliary_coordinates(f).items()
         ):
             axes = self.implementation.get_construct_data_axes(f, key)
+            print("DEBUG 1 4-5-1")
             if len(axes) > 1 or axes[0] in data_axes:
+                print("DEBUG 1 4-5-2")
                 # This auxiliary coordinate construct spans at least
                 # one of the dimensions of the field constuct's data
                 # array, or the domain constructs dimensions.
@@ -3656,12 +3686,14 @@ class NetCDFWrite(IOWrite):
                     f, key, aux_coord, coordinates
                 )
             else:
+                print("DEBUG 1 4-5-3")
                 # This auxiliary coordinate needs to be written as a
                 # scalar coordinate variable
                 coordinates = self._write_scalar_coordinate(
                     f, key, aux_coord, axis, coordinates
                 )
 
+        print("DEBUG 1 4-6 -- DOESN'T GET TO THIS!")
         # ------------------------------------------------------------
         # Create netCDF variables from domain ancillaries
         # ------------------------------------------------------------
@@ -5074,12 +5106,13 @@ class NetCDFWrite(IOWrite):
                 )
 
         g["external_file"] = external
-
         # ------------------------------------------------------------
         # Write each field construct
         # ------------------------------------------------------------
         for f in fields:
+            print("HERE 1")
             self._write_field_or_domain(f)
+            print("HERE 2")
 
         # ------------------------------------------------------------
         # Write all of the buffered data to disk

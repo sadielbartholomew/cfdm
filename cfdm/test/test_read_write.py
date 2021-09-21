@@ -226,7 +226,7 @@ class read_writeTest(unittest.TestCase):
 
         g_copy = g.copy()
 
-        for fmt in self.netcdf_fmts:  # test over all netCDF 3 and 4 formats
+        for fmt in ["NETCDF4"]:  # test over all netCDF 3 and 4 formats
             # Other tests cover write as default mode (i.e. test with no mode
             # argument); here test explicit provision of 'w' as argument:
             cfdm.write(
@@ -249,6 +249,7 @@ class read_writeTest(unittest.TestCase):
             # Main aspect of this test: testing the append mode ('a'): now
             # append all other example fields, to check a diverse variety.
             for ex_field_n, ex_field in enumerate(cfdm.example_fields()):
+                print("FIELDS IN QUESTION ARE:", ex_field_n)
                 # Note: after Issue #141, this skip can be removed.
                 if ex_field_n == 1:
                     continue
@@ -259,13 +260,22 @@ class read_writeTest(unittest.TestCase):
                 if fmt == "NETCDF4_CLASSIC" and ex_field_n in (6, 7):
                     continue
 
+                print("UP TO HERE WE ARE GOOD")
                 # Skip since "Can't write int64 data from <Count: (2) > to a
                 # NETCDF3_CLASSIC file" causes a ValueError i.e. not possible.
                 # Note: can remove this when Issue #140 is closed.
                 if fmt in self.netcdf3_fmts and ex_field_n == 6:
                     continue
 
+                ### BELOW LINE IS WHERE THE SEG FAULT HAPPENS
+                ### Set a breakpoint:
+                ###import os, signal; os.kill(os.getpid(), signal.SIGTRAP)
+                print("TEMP FILE DUE TO USE IS", tmpfile)
                 cfdm.write(ex_field, tmpfile, fmt=fmt, mode="a")
+                # CLUE 1: changing to "w" from "a" works, so it is in append code
+                ### ABOVE LINE IS WHERE THE SEG FAULT HAPPENS
+                print("NOT GOT UP TO HERE")
+
                 f = cfdm.read(tmpfile)
 
                 new_length += 1  # there should be exactly one more field now
