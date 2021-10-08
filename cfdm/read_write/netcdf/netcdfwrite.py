@@ -4433,7 +4433,7 @@ class NetCDFWrite(IOWrite):
             self.write_vars["netcdf"]
         )
         self.write_vars["netcdf"].close()
-        ###del self.write_vars["netcdf"]
+        del self.write_vars["netcdf"]
 
     def file_open(self, filename, mode, fmt, fields):
         """Open the netCDF file for writing.
@@ -5186,7 +5186,7 @@ class NetCDFWrite(IOWrite):
         # on the read iteration and re-open it for the append
         # iteration. So we always close it here.
         self.file_close(filename)
-        del g["netcdf"]
+        #del g["netcdf"]
 
         # ------------------------------------------------------------
         # Write external fields to the external file

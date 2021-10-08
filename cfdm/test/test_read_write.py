@@ -16,7 +16,7 @@ import cfdm
 warnings = False
 
 # Set up temporary files
-n_tmpfiles = 9
+n_tmpfiles = 11
 tmpfiles = [
     tempfile.mkstemp("_test_read_write.nc", dir=os.getcwd())[1]
     for i in range(n_tmpfiles)
@@ -31,6 +31,8 @@ tmpfiles = [
     tmpfilec3,
     tmpfile0,
     tmpfile1,
+    tmpfileX1,
+    tmpfileX2
 ) = tmpfiles
 
 
@@ -180,6 +182,7 @@ class read_writeTest(unittest.TestCase):
     def test_write_netcdf_mode(self):
         """Test the `mode` parameter to `write`, notably append mode."""
         g = cfdm.read(self.filename)  # note 'g' has one field
+        g_copy = g.copy()
 
         # Test special case #1: attempt to append fields with groups
         # (other than 'root') which should be forbidden. Using fmt="NETCDF4"
@@ -227,8 +230,6 @@ class read_writeTest(unittest.TestCase):
         # First test a bad mode value:
         with self.assertRaises(ValueError):
             cfdm.write(g[0], tmpfile, mode="g")
-
-        g_copy = g.copy()
 
         for fmt in ["NETCDF4"]:  # test over all netCDF 3 and 4 formats
             # Other tests cover write as default mode (i.e. test with no mode
@@ -440,12 +441,14 @@ class read_writeTest(unittest.TestCase):
             #     )
 
             #"""
+            g_copy_copy = g_copy.copy()
             # Check behaviour when append identical fields, as an edge case:
-            cfdm.write(g, tmpfile, fmt=fmt, mode="w")  # 1. overwrite to wipe
+            cfdm.write(g_copy, tmpfileX1, fmt=fmt, mode="w")  # 1. overwrite to wipe
             print("uuuuuu" * 100)
-            cfdm.write(g.copy(), tmpfile, fmt=fmt, mode="a")  # 2. now append
+            cfdm.write(g_copy_copy, tmpfileX1, fmt=fmt, mode="a")  # 2. now append
+            # CLUE: works for mode="w" if replace "a" with...
             print("akakakakaka" * 100)
-            f = cfdm.read(tmpfile)
+            f = cfdm.read(tmpfileX1)
             self.assertEqual(len(f), 2 * len(g))
             self.assertTrue(
                 any(
