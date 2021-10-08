@@ -415,6 +415,7 @@ class NetCDFWrite(IOWrite):
                datatype of the array of the input variable.
 
         """
+        print("..BAR.. 0")
         g = self.write_vars
 
         if not isinstance(variable, numpy.ndarray):
@@ -424,9 +425,15 @@ class NetCDFWrite(IOWrite):
         else:
             data = variable
 
+        print(data._components)
+        print("..BAR.. 2")  # tmpv6u7yb17_test_read_write.nc
+
         dtype = getattr(data, "dtype", None)
+        print("..BAR.. 2.1")
         if dtype is None or dtype.kind in "SU":
+            print("..BAR.. 2.2")
             if g["fmt"] == "NETCDF4" and g["string"]:
+                print("..BAR.. 3")
                 return str
 
             return "S1"
@@ -434,6 +441,8 @@ class NetCDFWrite(IOWrite):
         new_dtype = g["datatype"].get(dtype, None)
         if new_dtype is not None:
             dtype = new_dtype
+
+        print("..BAR.. 4")
 
         return f"{dtype.kind}{dtype.itemsize}"
 
@@ -2193,10 +2202,14 @@ class NetCDFWrite(IOWrite):
                 # the bounds netCDF variable and add the 'bounds',
                 # 'climatology' or 'nodes' attribute (as appropriate)
                 # to the dictionary of extra attributes.
+                #if not g["dry_run"]:
                 extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
 
                 # Create a new auxiliary coordinate variable, if it has data
-                if self.implementation.get_data(coord, None) is not None:
+                if (
+                        self.implementation.get_data(coord, None) is not None
+                        #and not g["dry_run"] and not g["post_dry_run"]
+                ):
                     # DEBUG -->
                     print("x1")
                     self._write_netcdf_variable(
@@ -2638,28 +2651,42 @@ class NetCDFWrite(IOWrite):
             ncdimensions = ()
         else:
             print("++2")
-            datatype = self._datatype(cfvar)
 
             ### DOESN'T LIKE USE OF THE FOLLOWING!!!
+            print(
+                "IS THIS:",
+                self,
+                self.write_vars["netcdf"].__dir__(),
+                self.write_vars["netcdf"]._isopen,
+                self.write_vars["netcdf"].vltypes,
+                self.write_vars["netcdf"].name,
+                self.write_vars["netcdf"].ncattrs(),
+                self.write_vars["netcdf"].path,
+                #self.write_vars["netcdf"].tocdl(),  ## ERRORS
+                ###self.write_vars["netcdf"].
+                self.write_vars["netcdf"].disk_format,
+                self.write_vars["netcdf"].file_format,
+                self.write_vars["netcdf"].data_model,
+                #self.write_vars["netcdf"].set_auto_chartostring(False),
+                #self.write_vars["netcdf"].set_auto_maskandscale(False),
+                #self.write_vars["netcdf"].set_auto_scale(False),
+                #self.write_vars["netcdf"].set_auto_mask(False),
+                self.write_vars["netcdf"].set_always_mask(False),
+                self.write_vars["netcdf"].keepweakref,
+                self.write_vars["netcdf"].sync(),
+                #self.write_vars["netcdf"].,
+                #self.write_vars["netcdf"].,
+                #self.write_vars["netcdf"].,
+                #self.write_vars["netcdf"].,
+            )
+            #self.write_vars["netcdf"].tocdl()
+            #self.file_open()
+            #self.write_vars["netcdf"].close()
+            #self.write_vars["netcdf"].close()
             data = self.implementation.get_data(cfvar, None)
             #### TO PROVE IT, SEE BELOW.
 
             original_ncdimensions = ncdimensions
-
-            print("++4.0")
-            if "greek_letters" in repr(cfvar):  # DEBUG
-                import pdb
-                import traceback
-                traceback.print_stack()  # see stack trace from call
-                pdb.set_trace()  # start PDB
-            print("++4.1")
-            try:
-                data, ncdimensions = self._transform_strings(
-                    cfvar, data, ncdimensions
-                )
-            except:
-                print("doesn't like this")
-            print("++4.2")
 
         # Update the 'seen' dictionary
         g["seen"][id(cfvar)] = {
@@ -2672,6 +2699,26 @@ class NetCDFWrite(IOWrite):
         # append-mode write (only write in the second post-dry-run iteration).
         if g["dry_run"]:
             return
+
+        if not domain_variable:
+            datatype = self._datatype(cfvar)
+            print("++4.0")
+            print(cfvar)
+            repr(cfvar)
+            print("+foo")
+            if "greek_letters" in repr(cfvar):  # DEBUG
+                #import pdb
+                import traceback
+                traceback.print_stack()  # see stack trace from call
+                #pdb.set_trace()  # start PDB
+            print("++4.1")
+            try:
+                data, ncdimensions = self._transform_strings(
+                    cfvar, data, ncdimensions
+                )
+            except:
+                print("doesn't like this")
+            print("++4.2")
 
         logger.info(f"    Writing {cfvar!r}")  # pragma: no cover
 
@@ -2868,8 +2915,9 @@ class NetCDFWrite(IOWrite):
             `Data`, `tuple`
 
         """
-        print("TRANSFORMING STRINGS FOR", data, ncdimensions)  #  construct,
+        print("TRANSFORMING STRINGS")  #  construct,
         datatype = self._datatype(construct)
+        print("TRANSFORMING STRINGS...")
 
         if data is not None and datatype == "S1":
             # --------------------------------------------------------
@@ -2878,6 +2926,8 @@ class NetCDFWrite(IOWrite):
             # dimension. Note that for NETCDF4 output files, datatype
             # is str, so this conversion does not happen.
             # --------------------------------------------------------
+            print("..a..")
+            #print("")
             array = self.implementation.get_array(data)
             #            if numpy.ma.is_masked(array):
             #                array = array.compressed()
@@ -3679,9 +3729,13 @@ class NetCDFWrite(IOWrite):
             print("DEBUG 1 4-5-1")
             if len(axes) > 1 or axes[0] in data_axes:
                 print("DEBUG 1 4-5-2")
+                #if aux_coord.has_bounds():
+                print(g["dry_run"], g["post_dry_run"])
+                print(aux_coord) #.bounds.get_data()._components)
                 # This auxiliary coordinate construct spans at least
                 # one of the dimensions of the field constuct's data
                 # array, or the domain constructs dimensions.
+                #if not g["post_dry_run"]:
                 coordinates = self._write_auxiliary_coordinate(
                     f, key, aux_coord, coordinates
                 )
@@ -4374,7 +4428,12 @@ class NetCDFWrite(IOWrite):
             `None`
 
         """
+        print(
+            "!!!!!!!!!!!!!!!!!!!!!!!! CLOSING FILE, pre 2:",
+            self.write_vars["netcdf"]
+        )
         self.write_vars["netcdf"].close()
+        ###del self.write_vars["netcdf"]
 
     def file_open(self, filename, mode, fmt, fields):
         """Open the netCDF file for writing.
@@ -4404,6 +4463,7 @@ class NetCDFWrite(IOWrite):
                 A `netCDF4.Dataset` object for the file.
 
         """
+        print("!!!!!!!!!!!!!!!!!! 2 OPENING FILE, start:", filename, mode)
         if fields and mode != "r":
             filename = os.path.abspath(filename)
             for f in fields:
@@ -4417,13 +4477,15 @@ class NetCDFWrite(IOWrite):
         # are neighbours on a QWERTY keyboard) since 'w' is destructive.
         # Note that for append ('a') mode the original file is never wiped.
         if mode == "w" and self.write_vars["overwrite"]:
+            print("THUS")
             os.remove(filename)
 
         try:
-            nc = netCDF4.Dataset(filename, mode, format=fmt)
+            nc = netCDF4.Dataset(filename, mode, format=fmt, keepweakref=True)
         except RuntimeError as error:
             raise RuntimeError(f"{error}: {filename}")
 
+        print("!!!!!!!!!!!!!!!!!! 2 OPENING FILE, end:", filename, mode)
         return nc
 
     @_manage_log_level_via_verbosity
@@ -4671,6 +4733,7 @@ class NetCDFWrite(IOWrite):
         See `cfdm.write` for examples.
 
         """
+        print("ZZZZZZZ -2", fields)
         logger.info(f"Writing to {fmt}")  # pragma: no cover
 
         # Expand file name
@@ -4912,6 +4975,8 @@ class NetCDFWrite(IOWrite):
         group,
     ):
         """Perform a file-writing iteration with the given settings."""
+        print("ZZZZZZZZ", fields, self.write_vars["dry_run"],
+              self.write_vars["post_dry_run"])
         # ------------------------------------------------------------
         # Initiate file IO with given write variables
         # ------------------------------------------------------------
@@ -5121,6 +5186,7 @@ class NetCDFWrite(IOWrite):
         # on the read iteration and re-open it for the append
         # iteration. So we always close it here.
         self.file_close(filename)
+        del g["netcdf"]
 
         # ------------------------------------------------------------
         # Write external fields to the external file

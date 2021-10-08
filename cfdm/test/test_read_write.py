@@ -191,7 +191,9 @@ class read_writeTest(unittest.TestCase):
         cfdm.write(g, tmpfile, fmt="NETCDF4", mode="w")  # 1. overwrite to wipe
         f = cfdm.read(tmpfile)
         with self.assertRaises(ValueError):
+            print("++++++++")
             cfdm.write(g[0], tmpfile, fmt="NETCDF4", mode="a")
+        print("++++++++--------")
 
         # Test special case #2: attempt to append fields with contradictory
         # featureType to the original file:
@@ -207,7 +209,9 @@ class read_writeTest(unittest.TestCase):
         h = cfdm.example_field(3)
         h.nc_set_global_attribute("featureType", "timeSeries")
         with self.assertRaises(ValueError):
+            print("++++++++ 2")
             cfdm.write(h, tmpfile, fmt="NETCDF4", mode="a")
+        print("++++++++------- 2")
         # Now remove featureType attribute for subsquent tests:
         g_attrs = g[0].nc_clear_global_attributes()
         del g_attrs["featureType"]
@@ -250,6 +254,10 @@ class read_writeTest(unittest.TestCase):
             # append all other example fields, to check a diverse variety.
             for ex_field_n, ex_field in enumerate(cfdm.example_fields()):
                 print("FIELDS IN QUESTION ARE:", ex_field_n)
+                ###print(ex_field, ex_field_n)
+                ###import sys
+                ###sys.exit()
+                
                 # Note: after Issue #141, this skip can be removed.
                 if ex_field_n == 1:
                     continue
@@ -271,6 +279,9 @@ class read_writeTest(unittest.TestCase):
                 ### Set a breakpoint:
                 ###import os, signal; os.kill(os.getpid(), signal.SIGTRAP)
                 print("TEMP FILE DUE TO USE IS", tmpfile)
+                if ex_field_n == 0:
+                    print("qqqqqqqqqqq" * 30)
+                    print(ex_field.construct("latitude").get_data()._components)
                 cfdm.write(ex_field, tmpfile, fmt=fmt, mode="a")
                 # CLUE 1: changing to "w" from "a" works, so it is in append code
                 ### ABOVE LINE IS WHERE THE SEG FAULT HAPPENS
@@ -316,6 +327,7 @@ class read_writeTest(unittest.TestCase):
                 append_ex_fields = append_ex_fields[:4]
 
             overall_length = len(append_ex_fields) + 1  # 1 for original 'g'
+            print("HHHHHHHHHHHHHHHHH" * 10)
             cfdm.write(
                 append_ex_fields, tmpfile, fmt=fmt, mode="a"
             )  # 2. now append
@@ -324,6 +336,7 @@ class read_writeTest(unittest.TestCase):
 
             # Also test the mode="r+" alias for mode="a".
             cfdm.write(g, tmpfile, fmt=fmt, mode="w")  # 1. overwrite to wipe
+            print("iiiiiiii" * 100)
             cfdm.write(
                 append_ex_fields, tmpfile, fmt=fmt, mode="r+"
             )  # 2. now append
@@ -426,9 +439,12 @@ class read_writeTest(unittest.TestCase):
             #         ex_1_coor.nc_get_variable(),
             #     )
 
+            #"""
             # Check behaviour when append identical fields, as an edge case:
             cfdm.write(g, tmpfile, fmt=fmt, mode="w")  # 1. overwrite to wipe
-            cfdm.write(g_copy, tmpfile, fmt=fmt, mode="a")  # 2. now append
+            print("uuuuuu" * 100)
+            cfdm.write(g.copy(), tmpfile, fmt=fmt, mode="a")  # 2. now append
+            print("akakakakaka" * 100)
             f = cfdm.read(tmpfile)
             self.assertEqual(len(f), 2 * len(g))
             self.assertTrue(
@@ -442,6 +458,7 @@ class read_writeTest(unittest.TestCase):
             self.assertEqual(
                 f[0].nc_global_attributes(), original_global_attrs
             )
+            #"""
 
     def test_read_write_netCDF4_compress_shuffle(self):
         """Test the `compress` and `shuffle` parameters to `write`."""

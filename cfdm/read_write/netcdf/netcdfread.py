@@ -304,15 +304,22 @@ class NetCDFRead(IORead):
         >>> r.file_close()
 
         """
+        
         for nc in self.read_vars["datasets"]:
+            print("!!!!!!!!!!!!!!!!!!!!!!!! CLOSING FILE, pre:", nc)
             nc.close()
 
         # Close temporary flattened files
         for flat_file in self.read_vars["flat_files"]:
+            print("!!!!!!!!!!!!!!!!!!!!!!!! CLOSING FILE, pre:", flat_file)
             flat_file.close()
 
         # Close the original grouped file (v1.8.8.1)
         if "nc_grouped" in self.read_vars:
+            print(
+                "!!!!!!!!!!!!!!!!!!!!!!!! CLOSING FILE, pre:",
+                self.read_vars["nc_grouped"]
+            )
             self.read_vars["nc_grouped"].close()
 
     def file_open(self, filename, flatten=True, verbose=None):
@@ -345,6 +352,7 @@ class NetCDFRead(IORead):
         >>> r.file_open('file.nc')
 
         """
+        print("!!!!!!!!!!!!!!!!!!!!!!!! OPENING FILE, start:", filename)
         try:
             nc = netCDF4.Dataset(filename, "r")
         except RuntimeError as error:
@@ -388,6 +396,7 @@ class NetCDFRead(IORead):
             g["flat_files"].append(flat_file)
 
         g["nc"] = nc
+        print("!!!!!!!!!!!!!!!!!!!!!!!! OPENING FILE, end:", filename)
         return nc
 
     @classmethod
