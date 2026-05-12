@@ -35,9 +35,9 @@ atexit.register(_remove_tmpfiles)
 def _create_noncompliant_names_field(compliant_field, temp_file):
     """Create a copy of a field with bad standard names on all
     variables."""
-    cfdm.write(compliant_field, temp_file)
+    cfdm.write(compliant_field, "temp_file_badsn.nc")#temp_file)
 
-    with Dataset(temp_file, "r+") as nc:
+    with Dataset("temp_file_badsn.nc", "r+") as nc:
         field_all_varnames = list(nc.variables.keys())
         # Store a bad name which is the variable name prepended with 'badname_'
         # - this makes it a certain invalid name and one we can identify as
@@ -48,9 +48,14 @@ def _create_noncompliant_names_field(compliant_field, temp_file):
 
         for var_name, bad_std_name in bad_name_mapping.items():
             var = nc.variables[var_name]
-            var.standard_name = bad_std_name
 
-    return cfdm.read(temp_file)[0]
+            # Check if sn already exists
+            #sn = var.standard_name
+            #print("FOUND NAME OF", sn)
+            if "standard_name" in var.ncattrs():
+                var.standard_name = bad_std_name
+
+    return cfdm.read("temp_file_badsn.nc")
 
 
 class ComplianceCheckingTest(unittest.TestCase):
@@ -85,11 +90,24 @@ class ComplianceCheckingTest(unittest.TestCase):
     # )
     # bad_ugrid_sn_fields = cfdm.read(bad_names_ugrid_file_path)
     good_ugrid_sn_fields = cfdm.read(ugrid_file_path)
-    bad_ugrid_sn_fields = [
-        _create_noncompliant_names_field(
-            good_ugrid_field, tmpfile2
-        ) for good_ugrid_field in good_ugrid_sn_fields
-    ]
+    print("GOOD UGRID FIELD\n\n")
+    ###cfdm.write(bad_ugrid_sn_fields, "bad_ugrid_field.nc")
+    for f in good_ugrid_sn_fields:
+        f.dump()
+
+    cfdm.write(good_ugrid_sn_fields, "good_ugrid_field2.nc")
+    bad_ugrid_sn_fields = _create_noncompliant_names_field(
+        good_ugrid_sn_fields, tmpfile2
+    )
+    # [
+    #     _create_noncompliant_names_field(
+    #         good_ugrid_field, tmpfile2
+    #     ) for good_ugrid_field in good_ugrid_sn_fields
+    # ]
+    print("BAD UGRID FIELD\n\n")
+    cfdm.write(bad_ugrid_sn_fields, "bad_ugrid_field2.nc")
+    for f in bad_ugrid_sn_fields:
+        f.dump()
 
     bad_sn_expected_reason = (
         "standard_name attribute has a value that is not a "
